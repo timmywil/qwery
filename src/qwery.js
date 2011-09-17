@@ -285,6 +285,7 @@
 
   qwery.uniq = uniq;
   qwery.pseudos = {};
+  qwery.isAncestor = isAncestor;
 
   var oldQwery = context.qwery;
   qwery.noConflict = function () {
