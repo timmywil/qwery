@@ -291,6 +291,6 @@
     context.qwery = oldQwery;
     return this;
   };
-  context['qwery'] = qwery;
+  context.qwery = qwery;
 
 }(this, document);
