@@ -21,7 +21,7 @@
       chunker = new RegExp(simple.source + '(' + attr.source + ')?' + '(' + pseudo.source + ')?'),
       walker = {
     ' ': function (node) {
-      return node && node !== html && node.parentNode
+      return node && node !== html && node.parentNode;
     },
     '>': function (node, contestant) {
       return node && node.parentNode == contestant.parentNode && node.parentNode;
@@ -70,7 +70,7 @@
         break;
       }
     }
-    return n
+    return n;
   }
 
   function q(query) {
@@ -154,9 +154,9 @@
     intr = q(token);
     els = dividedTokens && /^[+~]$/.test(dividedTokens[dividedTokens.length - 1]) ? function (r) {
         while (root = root.nextSibling) {
-          root.nodeType == 1 && (intr[1] ? intr[1] == root.tagName.toLowerCase() : 1) && r.push(root)
+          root.nodeType == 1 && (intr[1] ? intr[1] == root.tagName.toLowerCase() : 1) && r.push(root);
         }
-        return r
+        return r;
       }([]) :
       root.getElementsByTagName(intr[1] || '*');
     for (i = 0, l = els.length; i < l; i++) {
@@ -185,23 +185,6 @@
     return ret;
   }
 
-  function boilerPlate(selector, _root, fn) {
-    var root = (typeof _root == 'string') ? fn(_root)[0] : (_root || doc);
-    if (selector === window || isNode(selector)) {
-      return !_root || (selector !== window && isNode(root) && isAncestor(selector, root)) ? [selector] : [];
-    }
-    if (selector && typeof selector === 'object' && isFinite(selector.length)) {
-      return array(selector);
-    }
-    if (m = selector.match(idOnly)) {
-      return (el = doc.getElementById(m[1])) ? [el] : [];
-    }
-    if (m = selector.match(tagOnly)) {
-      return array(root.getElementsByTagName(m[1]));
-    }
-    return false;
-  }
-
   function isNode(el) {
     return (el && el.nodeType && (el.nodeType == 1 || el.nodeType == 9));
   }
@@ -220,15 +203,31 @@
     return a;
   }
 
-  function qwery(selector, _root) {
+  function qwery(selector, _root, results) {
     var root = (typeof _root == 'string') ? qwery(_root)[0] : (_root || doc);
+    results = results || [];
     if (!root || !selector) {
-      return [];
+      return results;
     }
-    if (m = boilerPlate(selector, _root, qwery)) {
-      return m;
+    if (selector === window || isNode(selector)) {
+      if (!_root || (selector !== window && isNode(root) && isAncestor(selector, root))) {
+        results.push(selector);
+      }
+      return results;
     }
-    return select(selector, root);
+    if (selector && typeof selector === 'object' && isFinite(selector.length)) {
+      return results.push.apply(results, array(selector));
+    }
+    if (m = selector.match(idOnly)) {
+      if (el = doc.getElementById(m[1])) {
+        results.push(el);
+      }
+      return results;
+    }
+    if (m = selector.match(tagOnly)) {
+      return results.push.apply(results, array(root.getElementsByTagName(m[1])));
+    }
+    return results.push.apply(results, select(selector, root));
   }
 
   var isAncestor = 'compareDocumentPosition' in html ?
@@ -257,7 +256,7 @@
     } :
     function (selector, root) {
       selector = selector.replace(normalizr, '$1');
-      var result = [], collection, collections = [], i;
+      var result = [], collection, collections = [], i, element;
       if (m = selector.match(tagAndOrClass)) {
         items = root.getElementsByTagName(m[1] || '*');
         r = classCache.g(m[2]) || classCache.s(m[2], new RegExp('(^|\\s+)' + m[2] + '(\\s+|$)'));
