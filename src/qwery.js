@@ -36,9 +36,9 @@ var c, i, j, k, l, m, o, p, r, v,
 			if (!node ) {
 				return false;
 			}
-			p1							   = previous( node );
-			p2							   = previous( contestant );
-			return p1 && p2 && p1		   == p2 && p1;
+			p1 = previous( node );
+			p2 = previous( contestant );
+			return p1 && p2 && p1 == p2 && p1;
 		}
 	},
 	isXML = function( elem ) {
@@ -89,11 +89,32 @@ function q( query ) {
 	return query.match( chunker );
 }
 
-// this next method expect at most these args
-// given => div.hello[title="world"]:foo('bar')
+function clean( s ) {
+	return cleanCache.g( s ) || cleanCache.s( s, s.replace( specialChars, '\\$1'));
+}
 
-// div.hello[title="world"]:foo('bar'), div, .hello, [title="world"], title, =, world, :foo('bar'), foo, ('bar'), bar]
+function checkAttr( qualify, actual, val ) {
+	switch ( qualify ) {
+	case '=':
+		return actual === val;
+	case '^=':
+		return actual.match( attrCache.g('^=' + val ) || attrCache.s('^=' + val, new RegExp('^' + clean( val ))));
+	case '$=':
+		return actual.match( attrCache.g('$=' + val ) || attrCache.s('$=' + val, new RegExp( clean( val ) + '$')));
+	case '*=':
+		return actual.match( attrCache.g( val ) || attrCache.s( val, new RegExp( clean( val ))));
+	case '~=':
+		return actual.match( attrCache.g('~=' + val ) || attrCache.s('~=' + val, new RegExp('(?:^|\\s+)' + clean( val ) + '(?:\\s+|$)')));
+	case '|=':
+		return actual.match( attrCache.g('|=' + val ) || attrCache.s('|=' + val, new RegExp('^' + clean( val ) + '(-|$)')));
+	}
+	return 0;
+}
 
+/**
+ * given => div.hello[title="world"]:foo('bar')
+ * div.hello[title="world"]:foo('bar'), div, .hello, [title="world"], title, =, world, :foo('bar'), foo, ('bar'), bar]
+ */
 function interpret( whole, tag, idsAndClasses, wholeAttribute, attribute, qualifier, value, wholePseudo, pseudo, wholePseudoVal, pseudoVal ) {
 	var m, c, k;
 	if ( tag && this.tagName.toLowerCase() !== tag ) {
@@ -127,28 +148,6 @@ function interpret( whole, tag, idsAndClasses, wholeAttribute, attribute, qualif
 	return this;
 }
 
-function clean( s ) {
-	return cleanCache.g( s ) || cleanCache.s( s, s.replace( specialChars, '\\$1'));
-}
-
-function checkAttr( qualify, actual, val ) {
-	switch ( qualify ) {
-	case '=':
-		return actual == val;
-	case '^=':
-		return actual.match( attrCache.g('^=' + val ) || attrCache.s('^=' + val, new RegExp('^' + clean( val ))));
-	case '$=':
-		return actual.match( attrCache.g('$=' + val ) || attrCache.s('$=' + val, new RegExp( clean( val ) + '$')));
-	case '*=':
-		return actual.match( attrCache.g( val ) || attrCache.s( val, new RegExp( clean( val ))));
-	case '~=':
-		return actual.match( attrCache.g('~=' + val ) || attrCache.s('~=' + val, new RegExp('(?:^|\\s+)' + clean( val ) + '(?:\\s+|$)')));
-	case '|=':
-		return actual.match( attrCache.g('|=' + val ) || attrCache.s('|=' + val, new RegExp('^' + clean( val ) + '(-|$)')));
-	}
-	return 0;
-}
-
 function _qwery( selector ) {
 	var i, j, k, l,	m, p,
 		token,
@@ -171,20 +170,20 @@ function _qwery( selector ) {
 
 	token = tokens.pop();
 	root = tokens.length && ( m = tokens[tokens.length - 1].match(idOnly) ) ? document.getElementById( m[1] ) : document;
-	if (!root ) {
+	if ( !root ) {
 		return r;
 	}
 
 	intr = q( token );
 
-	els = dividedTokens && /^[+~]$/.test( dividedTokens[dividedTokens.length - 1]) ?
+	els = dividedTokens && /^[+~]$/.test( dividedTokens[dividedTokens.length - 1] ) ?
 		function( r ) {
 			while ( root = root.nextSibling ) {
 				root.nodeType == 1 && ( intr[1] ? intr[1] == root.tagName.toLowerCase() : 1 ) && r.push( root );
 			}
 			return r;
 		}([]) :
-		root.getElementsByTagName( intr[1] || '*');
+		root.getElementsByTagName( intr[1] || '*' );
 
 	j = 0;
 	for ( i = 0, l = els.length; i < l; i++ ) {
@@ -233,39 +232,6 @@ function uniq( ar ) {
 		a[ a.length ] = ar[ i ];
 	}
 	return a;
-}
-
-function qwery( selector, _root, results ) {
-	var root = ( typeof _root == 'string' ) ? qwery(_root )[ 0 ] : ( _root || document );
-	results = results || [];
-
-	if (!root || !selector ) {
-		return results;
-	}
-
-	if ( selector === window || isNode( selector )) {
-		if (!_root || ( selector !== window && isNode( root ) && contains( selector, root ))) {
-			results.push( selector );
-		}
-		return results;
-	}
-
-	if ( selector && typeof selector === 'object' && isFinite( selector.length )) {
-		return results.push.apply( results, array( selector ));
-	}
-
-	if ( m = selector.match(idOnly) ) {
-		if ( el = document.getElementById(m[ 1 ]) ) {
-			results.push( el );
-		}
-		return results;
-	}
-
-	if ( m = selector.match(tagOnly) ) {
-		return results.push.apply( results, array(root.getElementsByTagName( m[1] )) );
-	}
-
-	return results.push.apply( results, select(selector, root) );
 }
 
 contains = 'compareDocumentPosition' in html ?
@@ -318,7 +284,7 @@ if ( document.querySelectorAll ) {
 	(function() {
 		var oldSelect = select,
 			div = document.createElement("div"),
-			id = "__sizzle__";
+			id = "__qwery__";
 
 		div.innerHTML = "<p class='TEST'></p>";
 
@@ -341,6 +307,39 @@ if ( document.querySelectorAll ) {
 	})();
 }
 
+function qwery( selector, _root, results ) {
+	var root = ( typeof _root == 'string' ) ? qwery(_root )[ 0 ] : ( _root || document );
+	results = results || [];
+
+	if (!root || !selector ) {
+		return results;
+	}
+
+	if ( selector === window || isNode( selector )) {
+		if (!_root || ( selector !== window && isNode( root ) && contains( selector, root ))) {
+			results.push( selector );
+		}
+		return results;
+	}
+
+	if ( selector && typeof selector === 'object' && isFinite( selector.length )) {
+		return results.push.apply( results, array( selector ));
+	}
+
+	if ( m = selector.match(idOnly) ) {
+		if ( el = document.getElementById(m[ 1 ]) ) {
+			results.push( el );
+		}
+		return results;
+	}
+
+	if ( m = selector.match(tagOnly) ) {
+		return results.push.apply( results, array(root.getElementsByTagName( m[1] )) );
+	}
+
+	return results.push.apply( results, select(selector, root) );
+}
+
 qwery.uniq = uniq;
 qwery.pseudos = {};
 qwery.contains = contains;
@@ -348,7 +347,7 @@ qwery.isXML = isXML;
 
 qwery.noConflict = function() {
 	window.qwery = oldQwery;
-	return qwery;
+	return this;
 };
 
 // Expose
